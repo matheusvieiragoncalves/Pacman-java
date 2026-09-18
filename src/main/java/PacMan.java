@@ -7,6 +7,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -121,15 +122,35 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
         _stop();
 
+        if (this.type == BlockTypeEnum.GHOST) {
+          this.changeDirection();
+        }
+
         return;
       }
 
       if (this.type == BlockTypeEnum.GHOST) {
         this.amountStepsInCurrentDirection++;
 
-        if (this.amountStepsInCurrentDirection >= this.maxStepsInCurrentDirection)
-          this.changeDirection();
+        if (this.amountStepsInCurrentDirection >= this.maxStepsInCurrentDirection) {
+          int currentLine = this.y / this.height;
+          int currentColumn = this.x / this.width;
 
+          List<Integer> largeColumns = List.of(4, 14);
+          List<Integer> largeLines = List.of(1, 3, 9, 19);
+
+          if (largeLines.contains(currentLine) && (this.direction == 'L' || this.direction == 'R')) {
+            this.forceGhostToUpOrDown();
+            return;
+          }
+
+          if (largeColumns.contains(currentColumn) && (this.direction == 'U' || this.direction == 'D')) {
+            this.forceGhostToLeftOrRight();
+            return;
+          }
+
+          this.changeDirection();
+        }
       }
 
       if (this.x < 0) {
@@ -186,8 +207,36 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
       int randomIndex = random.nextInt(avaliableDirections.length);
       char randomDirection = avaliableDirections[randomIndex];
-      this.updateDirection(randomDirection);
 
+      this.updateDirection(randomDirection);
+    }
+
+    public void forceGhostToUpOrDown() {
+
+      if (this.direction == 'U' || this.direction == 'D') {
+        this.forceGhostToLeftOrRight();
+        return;
+      }
+
+      char[] avaliableDirections = { 'U', 'D' };
+      int randomIndex = random.nextInt(avaliableDirections.length);
+      char randomDirection = avaliableDirections[randomIndex];
+
+      this.updateDirection(randomDirection);
+    }
+
+    public void forceGhostToLeftOrRight() {
+
+      if (this.direction == 'L' || this.direction == 'R') {
+        this.forceGhostToUpOrDown();
+        return;
+      }
+
+      char[] avaliableDirections = { 'L', 'R' };
+      int randomIndex = random.nextInt(avaliableDirections.length);
+      char randomDirection = avaliableDirections[randomIndex];
+
+      this.updateDirection(randomDirection);
     }
   }
 
@@ -321,6 +370,12 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         }
       }
     }
+
+    // Remover depois
+    // ghosts.removeIf(ghost -> ghost.image == ghostImages.get(String.valueOf('b'))
+    // ||
+    // ghost.image == ghostImages.get(String.valueOf('r')) ||
+    // ghost.image == ghostImages.get(String.valueOf('p')));
   }
 
   public void moveGhosts() {
