@@ -8,12 +8,17 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Random;
 
 import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
 public class PacMan extends JPanel implements ActionListener, KeyListener {
+
+  enum BlockTypeEnum {
+    PACMAN, GHOST, WALL, FOOD
+  }
 
   class Block {
     int x;
@@ -31,7 +36,12 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     int velocityX = 0;
     int velocityY = 0;
 
-    Block(int x, int y, int height, int width, Image image) {
+    BlockTypeEnum type;
+
+    int amountStepsInCurrentDirection = 0;
+    final int maxStepsInCurrentDirection = 10;
+
+    Block(int x, int y, int height, int width, Image image, BlockTypeEnum type) {
       this.x = x;
       this.y = y;
 
@@ -42,11 +52,27 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
       this.startX = x;
       this.startY = y;
+
+      this.type = type;
     }
 
     private void updateDirection(char direction) {
+      char previousDirection = this.direction;
       this.direction = direction;
       updateVelocity();
+
+      this.x += this.velocityX;
+      this.y += this.velocityY;
+
+      if (_isCollidedWithWall()) {
+        this.x -= this.velocityX;
+        this.y -= this.velocityY;
+
+        this.direction = previousDirection;
+        updateVelocity();
+
+        return;
+      }
     }
 
     private void updateVelocity() {
@@ -79,16 +105,31 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     }
 
     public void move() {
+
+      if (this.type == BlockTypeEnum.WALL)
+        return;
+
+      if (this.type == BlockTypeEnum.FOOD)
+        return;
+
       this.x += this.velocityX;
       this.y += this.velocityY;
 
-      if (_isCollidedWithGhost()) {
+      if ((_isCollidedWithGhost() && this.type == BlockTypeEnum.PACMAN) || _isCollidedWithWall()) {
         this.x -= this.velocityX;
         this.y -= this.velocityY;
 
         _stop();
 
         return;
+      }
+
+      if (this.type == BlockTypeEnum.GHOST) {
+        this.amountStepsInCurrentDirection++;
+
+        if (this.amountStepsInCurrentDirection >= this.maxStepsInCurrentDirection)
+          this.changeDirection();
+
       }
 
       if (this.x < 0) {
@@ -108,9 +149,13 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
       }
     }
 
-    private void _stop() {
-      this.velocityX = 0;
-      this.velocityY = 0;
+    private boolean _isCollidedWithGhost() {
+      for (Block ghost : ghosts) {
+        if (checkCollisionWithAnotherBlock(ghost))
+          return true;
+      }
+
+      return false;
     }
 
     private boolean _isCollidedWithWall() {
@@ -122,13 +167,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
       return false;
     }
 
-    private boolean _isCollidedWithGhost() {
-      for (Block ghost : ghosts) {
-        if (checkCollisionWithAnotherBlock(ghost))
-          return true;
-      }
-
-      return false;
+    private void _stop() {
+      this.velocityX = 0;
+      this.velocityY = 0;
     }
 
     private boolean checkCollisionWithAnotherBlock(Block block) {
@@ -136,6 +177,17 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
           this.x + this.width > block.x &&
           this.y < block.y + block.height &&
           this.y + this.height > block.y;
+    }
+
+    public void changeDirection() {
+      this.amountStepsInCurrentDirection = 0;
+
+      char[] avaliableDirections = { 'U', 'D', 'L', 'R' };
+
+      int randomIndex = random.nextInt(avaliableDirections.length);
+      char randomDirection = avaliableDirections[randomIndex];
+      this.updateDirection(randomDirection);
+
     }
   }
 
@@ -188,6 +240,8 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
   };
 
   Timer gameLoop;
+  char[] directions = { 'U', 'D', 'L', 'R' };
+  Random random = new Random();
 
   PacMan() {
     setPreferredSize(new Dimension(boardWidth, boardHeight));
@@ -197,6 +251,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
     loadImages();
     loadMap();
+    moveGhosts();
 
     gameLoop = new Timer(50, this); // 50 milliseconds (20 frames per second)
     gameLoop.start(); // Start the game loop
@@ -243,28 +298,36 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
         switch (tile) {
           case 'X':
-            Block wall = new Block(x, y, tileSize, tileSize, wallImage);
+            Block wall = new Block(x, y, tileSize, tileSize, wallImage, BlockTypeEnum.WALL);
             walls.add(wall);
             break;
           case 'P':
-            pacman = new Block(x, y, tileSize, tileSize, pacmanRightImage);
+            pacman = new Block(x, y, tileSize, tileSize, pacmanRightImage, BlockTypeEnum.PACMAN);
             break;
           case 'b':
           case 'r':
           case 'p':
           case 'o':
             Image ghostImage = ghostImages.get(String.valueOf(tile));
-            Block ghost = new Block(x, y, tileSize, tileSize, ghostImage);
+            Block ghost = new Block(x, y, tileSize, tileSize, ghostImage, BlockTypeEnum.GHOST);
             ghosts.add(ghost);
             break;
           case ' ':
-            Block food = new Block(x + 14, y + 14, 4, 4, null);
+            Block food = new Block(x + 14, y + 14, 4, 4, null, BlockTypeEnum.FOOD);
             foods.add(food);
             break;
           default:
             break;
         }
       }
+    }
+  }
+
+  public void moveGhosts() {
+    for (Block ghost : ghosts) {
+      int randomIndex = random.nextInt(directions.length);
+      char randomDirection = directions[randomIndex];
+      ghost.updateDirection(randomDirection);
     }
   }
 
@@ -295,6 +358,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
   @Override
   public void actionPerformed(ActionEvent e) {
     pacman.move();
+    for (Block ghost : ghosts) {
+      ghost.move();
+    }
     repaint();
   }
 
@@ -309,6 +375,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
   @Override
   public void keyReleased(KeyEvent e) {
     movePacman(e.getKeyCode());
+    updatePacmanImage();
   }
 
   public void movePacman(int keyCode) {
@@ -330,5 +397,21 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
     String direction = directionsMap.get(keyCode);
     pacman.updateDirection(direction.charAt(0));
+  }
+
+  public void updatePacmanImage() {
+
+    String currentDirection = String.valueOf(pacman.direction);
+
+    final Map<String, Image> imageDirectionsMap = Map.of(
+        "U", pacmanUpImage,
+        "D", pacmanDownImage,
+        "L", pacmanLeftImage,
+        "R", pacmanRightImage);
+
+    if (!imageDirectionsMap.containsKey(currentDirection))
+      return;
+
+    pacman.image = imageDirectionsMap.get(currentDirection);
   }
 }
