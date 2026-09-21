@@ -17,7 +17,7 @@ public class App {
         frame.setLocationRelativeTo(null); // Center the window on the screen
         frame.setResizable(false); // Prevent the window from being resized
 
-        PacMan pacManGame = new PacMan();
+        Game pacManGame = new Game();
         pacManGame.requestFocus(); // Request focus for the PacMan game panel to receive key events
 
         frame.add(pacManGame);
