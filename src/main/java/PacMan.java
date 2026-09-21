@@ -471,6 +471,11 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
     for (Block ghost : ghosts) {
       ghost.move();
     }
+
+    if (gameOver) {
+      gameLoop.stop();
+    }
+
     repaint();
   }
 
@@ -486,6 +491,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
   public void keyReleased(KeyEvent e) {
     movePacman(e.getKeyCode());
     updatePacmanImage();
+    if (gameOver) {
+      resetGame();
+    }
   }
 
   public void movePacman(int keyCode) {
@@ -523,5 +531,23 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
       return;
 
     pacman.image = imageDirectionsMap.get(currentDirection);
+  }
+
+  public void resetGame() {
+
+    System.out.println("Game reset.");
+
+    score = 0;
+    lives = 3;
+    gameOver = false;
+
+    loadMap();
+    pacman.resetPosition();
+
+    for (Block ghost : ghosts) {
+      ghost.resetPosition();
+    }
+
+    gameLoop.start();
   }
 }
