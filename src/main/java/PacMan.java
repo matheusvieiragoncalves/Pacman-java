@@ -1,5 +1,6 @@
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
@@ -117,6 +118,20 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
       this.y += this.velocityY;
 
       if ((_isCollidedWithGhost() && this.type == BlockTypeEnum.PACMAN) || _isCollidedWithWall()) {
+
+        if (_isCollidedWithGhost() && this.type == BlockTypeEnum.PACMAN) {
+          lives--;
+          this.resetPosition();
+
+          for (Block ghost : ghosts) {
+            ghost.resetPosition();
+          }
+
+          if (lives <= 0) {
+            gameOver = true;
+          }
+        }
+
         this.x -= this.velocityX;
         this.y -= this.velocityY;
 
@@ -153,6 +168,18 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
         }
       }
 
+      if (this.type == BlockTypeEnum.PACMAN) {
+        Block collidedFood = _isCollidedWithFood();
+        if (collidedFood != null) {
+          foods.remove(collidedFood);
+          score += foodScore; // Increase the score by the defined food score
+        }
+      }
+
+      teleportToOppositeSide();
+    }
+
+    private void teleportToOppositeSide() {
       if (this.x < 0) {
         this.x = boardWidth - tileSize;
       }
@@ -168,6 +195,15 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
       if (this.y >= boardHeight) {
         this.y = 0;
       }
+    }
+
+    private Block _isCollidedWithFood() {
+      for (Block food : foods) {
+        if (checkCollisionWithAnotherBlock(food))
+          return food;
+      }
+
+      return null;
     }
 
     private boolean _isCollidedWithGhost() {
@@ -238,6 +274,11 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
       this.updateDirection(randomDirection);
     }
+
+    public void resetPosition() {
+      this.x = this.startX;
+      this.y = this.startY;
+    }
   }
 
   final private int rowCount = 21;
@@ -245,6 +286,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
   final private int tileSize = 32;
   final private int boardWidth = columnCount * tileSize;
   final private int boardHeight = rowCount * tileSize;
+  final private int foodScore = 10; // Score for each food eaten
 
   private Image wallImage;
 
@@ -291,6 +333,9 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
   Timer gameLoop;
   char[] directions = { 'U', 'D', 'L', 'R' };
   Random random = new Random();
+  int score = 0;
+  int lives = 3; // Number of lives the player has
+  boolean gameOver = false; // Flag to indicate if the game is over
 
   PacMan() {
     setPreferredSize(new Dimension(boardWidth, boardHeight));
@@ -300,7 +345,7 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
 
     loadImages();
     loadMap();
-    moveGhosts();
+    // moveGhosts();
 
     gameLoop = new Timer(50, this); // 50 milliseconds (20 frames per second)
     gameLoop.start(); // Start the game loop
@@ -404,9 +449,19 @@ public class PacMan extends JPanel implements ActionListener, KeyListener {
       g.drawImage(ghost.image, ghost.x, ghost.y, ghost.width, ghost.height, null);
     }
 
+    g.setColor(Color.WHITE);
+
     for (Block food : foods) {
-      g.setColor(Color.WHITE);
       g.fillOval(food.x, food.y, food.width, food.height);
+    }
+
+    g.setFont(new Font("Arial", Font.PLAIN, 18));
+
+    if (gameOver) {
+      g.drawString("Game Over" + String.valueOf(score), tileSize / 2, tileSize / 2);
+
+    } else {
+      g.drawString("X " + String.valueOf(lives) + " Score: " + String.valueOf(score), tileSize / 2, tileSize / 2);
     }
   }
 
