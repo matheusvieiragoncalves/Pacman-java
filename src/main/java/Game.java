@@ -10,6 +10,7 @@ import java.util.HashSet;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
+import objects.food.Food;
 import objects.wall.Wall;
 
 public class Game extends JPanel implements ActionListener, KeyListener {
@@ -21,6 +22,7 @@ public class Game extends JPanel implements ActionListener, KeyListener {
   final private int boardHeight = rowCount * tileSize;
 
   HashSet<Wall> walls;
+  HashSet<Food> foods;
 
   final private String[] tileMap = {
       "XXXXXXXXXXXXXXXXXXX",
@@ -66,6 +68,7 @@ public class Game extends JPanel implements ActionListener, KeyListener {
 
   public void loadMap() {
     walls = new HashSet<>();
+    foods = new HashSet<>();
 
     for (int row = 0; row < rowCount; row++) {
       for (int col = 0; col < columnCount; col++) {
@@ -94,8 +97,8 @@ public class Game extends JPanel implements ActionListener, KeyListener {
             // ghosts.add(ghost);
             break;
           case ' ':
-            // Block food = new Block(x + 14, y + 14, 4, 4, null, BlockTypeEnum.FOOD);
-            // foods.add(food);
+            Food food = new Food(x, y);
+            foods.add(food);
             break;
           default:
             break;
@@ -111,8 +114,21 @@ public class Game extends JPanel implements ActionListener, KeyListener {
   }
 
   public void draw(Graphics g) {
+    _drawWalls(g);
+    _drawFoods(g);
+  }
+
+  private void _drawWalls(Graphics g) {
     for (Wall wall : walls) {
       g.drawImage(wall.getImage(), wall.getX(), wall.getY(), wall.getWidth(), wall.getHeight(), null);
+    }
+  }
+
+  private void _drawFoods(Graphics g) {
+
+    for (Food food : foods) {
+      g.setColor(food.getColor());
+      g.fillOval(food.getX(), food.getY(), food.getWidth(), food.getHeight());
     }
 
   }
@@ -132,7 +148,6 @@ public class Game extends JPanel implements ActionListener, KeyListener {
 
   @Override
   public void keyReleased(KeyEvent e) {
-
   }
 
 }
